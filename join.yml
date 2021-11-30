@@ -1,0 +1,25 @@
+---
+- host: master
+  become: true
+  remote_user: p-k8s-adm
+  tasks:
+    - name: init
+      ansible.builtin.command: kubeadm init --pod-network-cidr=10.244.0.0/16
+      register: result
+      until: result.stdout.find("Your Kubernetes control-plane has initialized successfully!") != -1
+      retries: 1
+      delay: 20
+
+    - name: apply network
+      ansible.builtin.command: kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+
+    - name: getJoinCommand
+      ansible.builtin.command: kubeadm token create --print-join-command
+      resiter: joinCommand
+
+    - name: join nodes
+      ansible.builtin.command: "{{ joinCommand }}"
+      deletage_to: "{{ item }}"
+      with_items:
+        - "knode0.internal.cloudapp.net"
+        - "knode1.internal.cloudapp.net"

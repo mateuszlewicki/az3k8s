@@ -1,0 +1,131 @@
+---
+- hosts: all
+  become: yes
+  remote_user: packer
+  tasks:
+  - name: bridge k8s
+    ansible.builtin.lineinfile:
+      path: /etc/modules-load.d/k8s.conf
+      line: br_netfilter
+      state: present
+      create: yes
+
+  - name: netBridge k8s
+    ansible.builtin.blockinfile:
+      path: /etc/sysctl.d/k8s.conf
+      block: |
+        net.bridge.bridge-nf-call-ip6tables = 1
+        net.bridge.bridge-nf-call-iptables = 1
+      create: yes
+        
+  - name: overlay cri-o
+    ansible.builtin.blockinfile:
+      path: /etc/modules-load.d/crio.conf
+      block: |
+        overlay
+        br_netfilter
+      create: yes
+
+  - name: /etc/sysctl.d/99-kubernetes-cri.conf
+    ansible.builtin.blockinfile:
+      path: /etc/sysctl.d/99-kubernetes-cri.conf
+      create: yes
+      block: |
+        net.bridge.bridge-nf-call-iptables  = 1
+        net.ipv4.ip_forward                 = 1
+        net.bridge.bridge-nf-call-ip6tables = 1
+
+  - name: "Add the {{ item }} module"
+    community.general.modprobe:
+      name: "{{ item }}"
+      state: present
+    with_items:
+      - "overlay"
+      - "br_netfilter"
+        
+  - name: sysctl
+    ansible.builtin.command: sysctl --system
+
+
+  - name: "Permit traffic in default zone on port {{item}}"
+    ansible.posix.firewalld:
+      port: "{{ item }}"
+      permanent: yes
+      state: enabled
+    with_items:
+      - "2379/tcp"
+      - "2380/tcp"
+      - "8090/tcp"
+      - "8472/udp" 
+      - "6443/tcp"
+      - "6783/tcp"
+      - "6783/udp"
+      - "6784/udp"
+      - "10250/tcp"
+      - "10251/tcp"
+      - "10252/tcp"
+      - "10255/tcp"
+
+  - name: "Check if ports is accessible "
+    ansible.builtin.wait_for:
+      port: "{{ item }}"
+      state: started         # Port should be open
+      delay: 0               # No wait before first check (sec)
+      timeout: 3             # Stop checking after timeout (sec)
+    ignore_errors: yes
+    with_items:
+      - "6443"
+
+  - name: Put SELinux in permissive mode, logging actions that would be blocked.
+    ansible.posix.selinux:
+      policy: targeted
+      state: permissive
+
+
+  - name: cri-o repos
+    ansible.builtin.get_url:
+      url: "{{ item.url }}"
+      dest: "{{ item.dest }}"
+    with_items:
+      - { dest: "/etc/yum.repos.d/devel:kubic:libcontainers:stable.repo", url: "https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/CentOS_8/devel:kubic:libcontainers:stable.repo" }
+      - { dest: "/etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:1.20.repo", url: "https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:1.20/CentOS_8/devel:kubic:libcontainers:stable:cri-o:1.20.repo" }
+
+
+
+  - name: kubeadm repo
+    ansible.builtin.yum_repository:
+      file: kubernetes.repo
+      name: Kubernetes
+      baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+      description: Kubernetes Repo
+      enabled: yes
+      gpgcheck: yes
+      repo_gpgcheck: yes
+      gpgkey:
+        - https://packages.cloud.google.com/yum/doc/yum-key.gpg
+        - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+#      exclude:
+#        - kubelet
+#        - kubeadm
+#        - kubectl
+
+  - name: Install the latest version of cri-o,kubelet, kubeadm, kubectl
+    ansible.builtin.dnf:
+      name:
+        - cri-o
+        - kubelet
+        - kubeadm
+        - kubectl
+      state: present
+      disable_excludes: kubernetes
+      
+  - name: "start & enable {{ item }}"
+    ansible.builtin.systemd:
+      state: started
+      daemon_reload: yes
+      enabled: yes
+      name: "{{ item }}"
+    with_items:
+      - "cri-o"
+      - "kubelet"
+
