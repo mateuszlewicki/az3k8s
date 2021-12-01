@@ -1,4 +1,18 @@
+# -*- mode: gitignore; -*-
 *tfstate*
 *tfvars
-*~$
 **/variables.pkrvars.hcl
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Org-mode
+.org-id-locations
+*_archive
+
+
