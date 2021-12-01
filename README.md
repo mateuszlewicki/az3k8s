@@ -1,13 +1,13 @@
 # USAGE
 
-##(basedir/packerRG)
+## (basedir/packerRG)
 ```sh
 terraform init
 populate terraform.tfvars
 terraform apply
 ```
 
-##(basedir/packer)
+## (basedir/packer)
 ```sh
 populate variables.pkrvars.hcl
 packer build [-force] -var-file="variables.pkrvars.hcl"
@@ -15,7 +15,7 @@ packer build [-force] -var-file="variables.pkrvars.hcl"
 
 **grab image id**
 
-##(basedir)
+## (basedir)
 ```sh
 run ./genRSA.sh
 terraform init
