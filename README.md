@@ -1,23 +1,32 @@
 # USAGE
 
-**(basedir/packerRG)** `terraform init`
-**(basedir/packerRG)** populate terraform.tfvars
-**(basedir/packerRG)** `terraform apply`
+##(basedir/packerRG)
+```sh
+terraform init
+populate terraform.tfvars
+terraform apply
+```
 
-**(basedir/packer)** populate variables.pkrvars.hcl
-**(basedir/packer)** `packer build [-force] -var-file="variables.pkrvars.hcl"`
+##(basedir/packer)
+```sh
+populate variables.pkrvars.hcl
+packer build [-force] -var-file="variables.pkrvars.hcl"
+```
 
 **grab image id**
 
-**(basedir)** run `./genRSA.sh`
-**(basedir)** `terraform init`
-**(basedir)** populate terrform.tfvars 
+##(basedir)
+```sh
+run ./genRSA.sh
+terraform init
+populate terrform.tfvars 
+
 **REMEMBER about imageID!** 
 
-**(basedir)** `terraform apply`
+terraform apply
 
-**(basedir)** run `./grabMasterIP.sh`
+run ./grabMasterIP.sh
 
-**(basedir)** run `ansible-playbook -i inventory.ini join.yml`
-
+run ansible-playbook -i inventory.ini join.yml
+```
 ENJOY!
