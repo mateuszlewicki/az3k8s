@@ -57,11 +57,11 @@ build {
   provisioner "shell" {
     script = "nopass.sh"
   }
+
   provisioner "ansible" {
     playbook_file = "./configVMs.yml"
     galaxy_file = "./requirements.yml"
     user = "packer"
-//    extra_arguments = [ "-vvvv" ]
 
     }
 

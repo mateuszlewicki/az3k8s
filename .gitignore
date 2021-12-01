@@ -15,4 +15,4 @@ tramp
 .org-id-locations
 *_archive
 
-
+*.terraform

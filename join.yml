@@ -1,25 +1,70 @@
 ---
-- host: master
+- name: Master init
+  hosts: master
   become: true
+  become_method: sudo
+  become_user: root
   remote_user: p-k8s-adm
   tasks:
+    - name: check if key exist
+      ansible.builtin.stat:
+        path: /var/tmp/id_rsa
+      register: kex
+    - name: grab key
+      ansible.builtin.copy:
+        src: /var/tmp/id_rsa
+        dest: /home/p-k8s-adm/.ssh/id_rsa
+        owner: p-k8s-adm
+        group: p-k8s-adm
+        mode: '0600'
+        remote_src: yes
+      when: kex.stat.exists
+        
+    - name: delete key
+      ansible.builtin.file:
+        path: /var/tmp/id_rsa
+        state: absent
+
+        
     - name: init
       ansible.builtin.command: kubeadm init --pod-network-cidr=10.244.0.0/16
       register: result
       until: result.stdout.find("Your Kubernetes control-plane has initialized successfully!") != -1
       retries: 1
       delay: 20
+      become: true
+
+    - name: create .kube
+      ansible.builtin.file:
+        path:  /home/p-k8s-adm/.kube
+        state: directory
+        owner: p-k8s-adm
+        group: p-k8s-adm
+        
+    - name: copy conf
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/pk8s-adm/.kube/config
+        owner: p-k8s-adm
+        group: p-k8s-adm
+        remote_src: yes
 
     - name: apply network
-      ansible.builtin.command: kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+      ansible.builtin.shell: kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
 
     - name: getJoinCommand
       ansible.builtin.command: kubeadm token create --print-join-command
-      resiter: joinCommand
+      register: joinCommand
 
+- name: workers join
+  hosts: workers
+  become: true
+  remote_user: p-k8s-adm
+  tasks:
+    - name: delete key
+      ansible.builtin.file:
+        path: /var/tmp/id_rsa
+        state: absent
     - name: join nodes
-      ansible.builtin.command: "{{ joinCommand }}"
-      deletage_to: "{{ item }}"
-      with_items:
-        - "knode0.internal.cloudapp.net"
-        - "knode1.internal.cloudapp.net"
+      ansible.builtin.command: "{{ hostvars['kmaster']['joinCommand'].stdout }}"
+

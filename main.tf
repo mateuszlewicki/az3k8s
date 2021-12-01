@@ -138,7 +138,7 @@ resource "azurerm_linux_virtual_machine" "kmaster" {
 
   admin_ssh_key {
     username   = var.adminUser
-    public_key = file("~/.ssh/id_rsa.pub")
+    public_key = file("./id_rsa.pub")
   }
 
   os_disk {
@@ -165,7 +165,7 @@ resource "azurerm_linux_virtual_machine" "knode0" {
 
   admin_ssh_key {
     username   = var.adminUser
-    public_key = file("~/.ssh/id_rsa.pub")
+    public_key = file("./id_rsa.pub")
   }
 
   os_disk {
@@ -194,7 +194,7 @@ resource "azurerm_linux_virtual_machine" "knode1" {
 
   admin_ssh_key {
     username   = var.adminUser
-    public_key = file("~/.ssh/id_rsa.pub")
+    public_key = file("./id_rsa.pub")
   }
 
   os_disk {
