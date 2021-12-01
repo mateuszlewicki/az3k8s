@@ -6,26 +6,6 @@
   become_user: root
   remote_user: p-k8s-adm
   tasks:
-    - name: check if key exist
-      ansible.builtin.stat:
-        path: /var/tmp/id_rsa
-      register: kex
-    - name: grab key
-      ansible.builtin.copy:
-        src: /var/tmp/id_rsa
-        dest: /home/p-k8s-adm/.ssh/id_rsa
-        owner: p-k8s-adm
-        group: p-k8s-adm
-        mode: '0600'
-        remote_src: yes
-      when: kex.stat.exists
-        
-    - name: delete key
-      ansible.builtin.file:
-        path: /var/tmp/id_rsa
-        state: absent
-
-        
     - name: init
       ansible.builtin.command: kubeadm init --pod-network-cidr=10.244.0.0/16
       register: result
@@ -61,10 +41,6 @@
   become: true
   remote_user: p-k8s-adm
   tasks:
-    - name: delete key
-      ansible.builtin.file:
-        path: /var/tmp/id_rsa
-        state: absent
     - name: join nodes
       ansible.builtin.command: "{{ hostvars['kmaster']['joinCommand'].stdout }}"
 
